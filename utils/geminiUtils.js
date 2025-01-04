@@ -1,0 +1,131 @@
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+require('dotenv').config();
+
+const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = gemini.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+
+const defaultPrompt = `You are a friendly, supportive, and understanding career advisor.
+Analyze the given resume data to identify key skills, strengths, and areas for professional development. Provide 2-3 suggestions for potential career paths based on their skills and experience. Be specific, clear and brief.
+Return the response in a valid JSON format with the following structure:
+{
+  "skills": ["skill1", "skill2", "skill3"],
+  "strengths": ["strength1", "strength2"],
+  "development_areas": ["area1", "area2"],
+  "potential_paths": ["path1", "path2"],
+  "skillGaps": ["gap1", "gap2"] ---should be like, based on your goal and your current self, improved sos os skill gap , like make everything conversational, so you can relate with users better 
+}as for urls you willl provide make sure they are not dead 
+  the skill gap is gotten by analysis the users present skills and the skillsthey need to acoomplish their goal
+If the user does not have a resume, provide a general analysis based on common starting points.
+The resume data is here: `;
+
+
+const recommendationPrompt = `You are a friendly, supportive, and understanding career advisor.
+Analyze the following resume data and the user's career goal. Provide 2-3 specific, clear, and actionable recommendations to help them achieve their career goal.
+Resume Data:
+--RESUME_DATA--
+
+User's Goal:
+--GOAL--
+
+Return the response in a valid JSON format with the following structure:
+{
+  "recommendations": [
+    {
+      "title": "Recommendation 1",
+      "description": "Description of recommendation 1",
+      "link": "Optional link for more information"
+    },
+    {
+      "title": "Recommendation 2",
+      "description": "Description of recommendation 2",
+      "link": "Optional link for more information"
+    }
+  ]
+}As for the recmmendations , be conversational and sound like a mentor not a critic you understand and as for urls you willl provide make sure they are not dead 
+Ensure the response is only valid JSON, no extra text or code fences.`;
+
+const cleanJsonString = (str) => {
+  let cleaned = str.trim().replace(/^```(json)?/, '').replace(/```$/, '');
+  cleaned = cleaned.trim();
+  return cleaned;
+};
+
+const parseGeminiResponse = (text) => {
+  try {
+    const cleanedText = cleanJsonString(text);
+    return JSON.parse(cleanedText);
+  } catch (error) {
+    console.warn('Failed to parse Gemini response as JSON:', text);
+    return {
+      error: 'Failed to parse Gemini response',
+      raw: text,
+    };
+  }
+};
+
+const generateSkills = async (resumeData, careerGoal) => {
+  try {
+    const prompt = defaultPrompt + JSON.stringify(resumeData) + (careerGoal ? `\nThe user's career goal is: ${careerGoal}\n` : '');
+    const result = await model.generateContent(prompt);
+    
+    const response = await result.response;
+    
+    const text = response.text();
+  
+    
+
+    const parsedResponse = parseGeminiResponse(text);
+    
+        if (parsedResponse.error) {
+            return parsedResponse;
+        }
+    return  {
+      skills: parsedResponse.skills || [],
+      strengths: parsedResponse.strengths || [],
+      development_areas: parsedResponse.development_areas || [],
+      potential_paths: parsedResponse.potential_paths || [],
+      skillGaps: parsedResponse.skillGaps || []
+      };
+  } catch (error) {
+      console.error('Gemini API Error:', error);
+      return {
+          error: 'Error processing with the Gemini API',
+          message: error.message
+      };
+  }
+};
+
+const generateRecommendations = async (userData) => {
+  try {
+    const prompt = recommendationPrompt
+      .replace('--RESUME_DATA--', userData.resumeData?.text || '')
+      .replace('--GOAL--', userData.careerGoal ? userData.careerGoal : '');
+    
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    const parsedResponse = parseGeminiResponse(text);
+    
+    if (parsedResponse.recommendations) {
+      parsedResponse.recommendations = parsedResponse.recommendations.map(r => ({
+        title: r.title || 'No title',
+        description: r.description || 'No description',
+        link: r.link || ''
+      }));
+    }
+    
+    if (parsedResponse.error) {
+        return parsedResponse;
+    }
+    return { recommendations: parsedResponse.recommendations || [] };
+  } catch (error) {
+    console.error('Gemini API Error:', error);
+    return {
+      error: 'Error processing with the Gemini API',
+      message: error.message
+    };
+  }
+};
+
+module.exports = { generateSkills, generateRecommendations };
