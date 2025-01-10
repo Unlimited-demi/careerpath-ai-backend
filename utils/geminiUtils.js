@@ -2,7 +2,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 require('dotenv').config();
 
 const gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = gemini.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
+const model = gemini.getGenerativeModel({ model: "gemini-2.0-flash-thinking-exp-1219" });
 
 const defaultPrompt = `You are a friendly, supportive, and understanding career advisor.
 Analyze the given resume data to identify key skills, strengths, and areas for professional development. Provide 2-3 suggestions for potential career paths based on their skills and experience. Be specific, clear and brief.
@@ -16,6 +16,7 @@ Return the response in a valid JSON format with the following structure:
 }as for urls you willl provide make sure they are not dead 
   the skill gap is gotten by analysis the users present skills and the skillsthey need to acoomplish their goal
 If the user does not have a resume, provide a general analysis based on common starting points.
+Also in areas for developmentt , actually tell me how to develop those areas like area1 : do this and that by this to improve that to achieve that 
 The resume data is here: `;
 
 
@@ -62,6 +63,36 @@ const parseGeminiResponse = (text) => {
     };
   }
 };
+const cleanJsonStringThinkingModel = (str) => {
+  let cleaned = str.trim();
+  
+  // Remove any text before the start of a JSON object
+    cleaned = cleaned.replace(/^[^{]*{/, '{');
+
+
+    // Remove any text after the end of a JSON object
+    let lastCurly = cleaned.lastIndexOf('}');
+    if (lastCurly !== -1) {
+        cleaned = cleaned.substring(0, lastCurly + 1);
+    }
+
+   return cleaned;
+};
+
+
+const parseGeminiResponseThinkingModel = (text) => {
+  try {
+    const cleanedText = cleanJsonStringThinkingModel(text);
+    
+    return JSON.parse(cleanedText);
+  } catch (error) {
+    console.warn('Failed to parse Gemini response as JSON:', text);
+    return {
+      error: 'Failed to parse Gemini response',
+      raw: text,
+    };
+  }
+};
 
 const generateSkills = async (resumeData, careerGoal) => {
   try {
@@ -74,7 +105,7 @@ const generateSkills = async (resumeData, careerGoal) => {
   
     
 
-    const parsedResponse = parseGeminiResponse(text);
+    const parsedResponse = parseGeminiResponseThinkingModel(text);
     
         if (parsedResponse.error) {
             return parsedResponse;
@@ -105,7 +136,7 @@ const generateRecommendations = async (userData) => {
     const response = await result.response;
     const text = response.text();
 
-    const parsedResponse = parseGeminiResponse(text);
+    const parsedResponse = parseGeminiResponseThinkingModel(text);
     
     if (parsedResponse.recommendations) {
       parsedResponse.recommendations = parsedResponse.recommendations.map(r => ({

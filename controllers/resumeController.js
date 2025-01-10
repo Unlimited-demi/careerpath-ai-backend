@@ -11,16 +11,7 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Multer configuration for file uploads
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadsDir); // Save files to the uploads directory
-    },
-    filename: function (req, file, cb) {
-        const fileName = file.fieldname + '-' + Date.now() + path.extname(file.originalname);
-        console.log("Saving file as:", fileName); // Log the file name
-        cb(null, fileName);
-    }
-});
+const storage = multer.memoryStorage();
 
 // File filter to allow only PDF files
 const fileFilter = (req, file, cb) => {
@@ -31,13 +22,12 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-const upload = multer({ storage: storage, fileFilter: fileFilter });
+const upload = multer({ storage, fileFilter });
 
 // Function to extract text from PDF
-const extractTextFromPDF = async (pdfPath) => {
+const extractTextFromPDF = async (pdfBuffer) => {
     try {
-        const dataBuffer = fs.readFileSync(pdfPath);
-        const data = await pdf(dataBuffer);
+        const data = await pdf(pdfBuffer);
         return data.text; // Extracted text from the PDF
     } catch (error) {
         console.error("Error extracting text from PDF:", error);
@@ -56,11 +46,9 @@ const uploadResume = async (req, res) => {
 
     try {
         console.log("File uploaded:", req.file);
-        const pdfPath = req.file.path;
-        console.log("PDF path:", pdfPath);
 
         // Extract text from the uploaded PDF
-        const extractedText = await extractTextFromPDF(pdfPath);
+        const extractedText = await extractTextFromPDF(req.file.buffer);
         console.log("Extracted text:", extractedText);
 
         // Save the extracted text to the database

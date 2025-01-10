@@ -13,4 +13,14 @@ const submitFeedback = async (req, res) => {
   }
 };
 
-module.exports = { submitFeedback };
+const getAllFeedback = async (req, res) => {
+  try {
+    const feedbacks = await Feedback.find({});
+    return res.status(200).json({ feedbacks });
+  } catch (err) {
+    console.error('Error fetching feedback:', err);
+    return res.status(500).json({ message: 'Failed to fetch feedback.' });
+  }
+};
+
+module.exports = { submitFeedback, getAllFeedback };
