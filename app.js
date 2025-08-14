@@ -7,6 +7,8 @@ const connectDB = require('./config/database');
 // const profileRoutes = require('./routes/profileRoutes');
 const userRoutes = require('./routes/userRoutes');
 const errorHandler = require('./middleware/errorHandler');
+const morgan = require('morgan');
+const logger = require('./config/logger');
 
 
 const app = express();
@@ -14,6 +16,7 @@ const app = express();
 // Middleware
 app.use(cors()); // Keep this first
 app.use(express.json()); // Add this to parse JSON request bodies
+app.use(morgan('combined', { stream: logger.stream }));
 
 // Connect Database
 connectDB();
