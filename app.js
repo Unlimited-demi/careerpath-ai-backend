@@ -6,6 +6,7 @@ const connectDB = require('./config/database');
 // const feedbackRoutes = require('./routes/feedbackRoutes');
 // const profileRoutes = require('./routes/profileRoutes');
 const userRoutes = require('./routes/userRoutes');
+const errorHandler = require('./middleware/errorHandler');
 
 
 const app = express();
@@ -24,6 +25,9 @@ app.use('/api/user', userRoutes);
 app.get('/', (req, res) => {
     res.send('Career Path AI Backend is up!');
 });
+
+// Error Handling Middleware
+app.use(errorHandler);
 
 // Profile route
 // 
