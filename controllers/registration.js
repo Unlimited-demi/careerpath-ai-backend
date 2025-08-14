@@ -1,9 +1,8 @@
 const { validationResult } = require('express-validator');
 const axios = require('axios');
-
 const  Registration  = require('../models/RegisterModel');
 
-exports.registerUser = async (req, res) => {
+exports.registerUser = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
@@ -16,29 +15,24 @@ exports.registerUser = async (req, res) => {
       });
       await newRegistration.save();
       res.status(201).json({ message: 'Registration created successfully', data: newRegistration });
-    } catch (e) {
-      console.error("Error during registration:", e); // Log the error on the server-side
-      res.status(500).json({
-        error: 'Failed to register',
-        detailedError: e.message, // Send the error message
-        stack: e.stack,          // Optionally send the stack trace (for development only)
-      });
+    } catch (error) {
+      next(error);
     }
   }
 
-exports.getAllRegistrations = async (req, res) => {  try {    const registrations = await Registration.find({});    res.json(registrations);
+exports.getAllRegistrations = async (req, res, next) => {  try {    const registrations = await Registration.find({});    res.json(registrations);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch registrations' });
+    next(error);
   }
 };
 
-exports.approveRegistration = async (req, res) => {
+exports.approveRegistration = async (req, res, next) => {
   try {
     const { id } = req.params;
     const updated = await Registration.findByIdAndUpdate(id, { approved: true }, { new: true });
     res.json(updated);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to approve registration' });
+    next(error);
   }
 };
 
