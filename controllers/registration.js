@@ -14,7 +14,12 @@ exports.registerUser = async (req, res, next) => {
         approved: false
       });
       await newRegistration.save();
-      res.status(201).json({ message: 'Registration created successfully', data: newRegistration });
+      res.status(201).json({
+        success: true,
+        status: 201,
+        message: 'Registration created successfully',
+        data: newRegistration,
+      });
     } catch (error) {
       next(error);
     }
@@ -22,7 +27,12 @@ exports.registerUser = async (req, res, next) => {
 
 exports.getAllRegistrations = async (req, res, next) => {  try {    const registrations = await Registration.find({});    res.json(registrations);
   } catch (error) {
-    next(error);
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'Registrations retrieved successfully',
+      data: registrations,
+    });
   }
 };
 
@@ -30,7 +40,12 @@ exports.approveRegistration = async (req, res, next) => {
   try {
     const { id } = req.params;
     const updated = await Registration.findByIdAndUpdate(id, { approved: true }, { new: true });
-    res.json(updated);
+    res.status(200).json({
+      success: true,
+      status: 200,
+      message: 'Registration approved successfully',
+      data: updated,
+    });
   } catch (error) {
     next(error);
   }
