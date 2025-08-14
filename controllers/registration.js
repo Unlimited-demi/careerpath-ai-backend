@@ -1,8 +1,14 @@
+const { validationResult } = require('express-validator');
 const axios = require('axios');
 
 const  Registration  = require('../models/RegisterModel');
 
 exports.registerUser = async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
     try {
       const newRegistration = new Registration({
         ...req.body,
@@ -35,4 +41,5 @@ exports.approveRegistration = async (req, res) => {
     res.status(500).json({ error: 'Failed to approve registration' });
   }
 };
+
 
